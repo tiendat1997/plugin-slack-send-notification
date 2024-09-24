@@ -10,7 +10,6 @@ import rateLimiter from '@/common/middleware/rateLimiter';
 import requestLogger from '@/common/middleware/requestLogger';
 import { healthCheckRouter } from '@/routes/healthCheck/healthCheckRouter';
 
-import { articleReaderRouter } from './routes/articleReader/articleReaderRouter';
 import { slackMessageRouter } from './routes/slackSendMessage/slackRouter';
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -23,7 +22,7 @@ app.use(cors());
 app.use(helmet());
 app.use(rateLimiter);
 app.use(bodyParser.json());
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
   res.removeHeader('X-Frame-Options');
   res.removeHeader('Content-Security-Policy');
   next();
@@ -34,8 +33,7 @@ app.use(requestLogger());
 // Routes
 app.use('/health-check', healthCheckRouter);
 app.use('/images', express.static('public/images'));
-app.use('/get-content', articleReaderRouter);
-app.use('/send-to-slack', slackMessageRouter)
+app.use('/slack', slackMessageRouter);
 // Swagger UI
 app.use(openAPIRouter);
 

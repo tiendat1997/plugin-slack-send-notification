@@ -1,11 +1,10 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 
-import { articleReaderRegistry } from '@/routes/articleReader/articleReaderRouter';
 import { healthCheckRegistry } from '@/routes/healthCheck/healthCheckRouter';
 import { slackMessageRegistry } from '@/routes/slackSendMessage/slackRouter';
 
 export function generateOpenAPIDocument() {
-  const registry = new OpenAPIRegistry([healthCheckRegistry, articleReaderRegistry, slackMessageRegistry]);
+  const registry = new OpenAPIRegistry([healthCheckRegistry, slackMessageRegistry]);
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
   return generator.generateDocument({
