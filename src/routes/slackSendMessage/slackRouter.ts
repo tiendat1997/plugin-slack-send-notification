@@ -15,7 +15,6 @@ slackMessageRegistry.register('SlackSender', SlackSentStatusSchema);
 
 export const slackMessageRouter: Router = (() => {
   const router = express.Router();
-
   slackMessageRegistry.registerPath({
     method: 'post',
     path: '/send-message',
@@ -24,12 +23,22 @@ export const slackMessageRouter: Router = (() => {
   });
 
   router.post('/send-message', async (_req: Request, res: Response) => {
-    const { summarizedDocument } = _req.body;
+    const { summarizedDocument, slackChannel } = _req.body;
+    if (!slackChannel) {
+      const validateServiceResponse = new ServiceResponse(
+        ResponseStatus.Failed,
+        '[Validation Error] slack channel is required!',
+        'Please confirm the Slack channel for sending the message.',
+        StatusCodes.BAD_REQUEST
+      );
+      return handleServiceResponse(validateServiceResponse, res);
+    }
+
     if (!summarizedDocument) {
       const validateServiceResponse = new ServiceResponse(
         ResponseStatus.Failed,
-        'Please provide document you want to summarize',
-        'I cannot do that...',
+        '[Validation Error] Summarized document is required!',
+        "Please confirm the document you'd like to summarize.",
         StatusCodes.BAD_REQUEST
       );
       return handleServiceResponse(validateServiceResponse, res);
@@ -69,24 +78,29 @@ export const slackMessageRouter: Router = (() => {
         },
       ];
 
-      await app.client.chat.postMessage({
+      const slackResponse = await app.client.chat.postMessage({
         token: env.SLACK_BOT_TOKEN,
-        channel: env.SLACK_CHANNEL,
+        channel: slackChannel,
         blocks: blocks,
       });
+      console.log('Slack RESPONSE', slackResponse);
       const serviceResponse = new ServiceResponse(
         ResponseStatus.Success,
         'Service is healthy',
-        'Message Sent!',
+        `Summary has been sent to the #${slackChannel} channel.`,
         StatusCodes.OK
       );
       return handleServiceResponse(serviceResponse, res);
     } catch (error) {
-      const errorMessage = `Error fetching transcript $${(error as Error).message}`;
+      const errorMessage = (error as Error).message;
+      let responseObject = 'I cannot do that...';
+      if (errorMessage.includes('channel_not_found')) {
+        responseObject = `Sorry, we couldn't find the Slack channel: ${slackChannel}.`;
+      }
       const errorServiceResponse = new ServiceResponse(
         ResponseStatus.Failed,
-        errorMessage,
-        'I cannot do that...',
+        `Error fetching transcript ${errorMessage}`,
+        responseObject,
         StatusCodes.INTERNAL_SERVER_ERROR
       );
       return handleServiceResponse(errorServiceResponse, res);
